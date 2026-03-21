@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tab Harbor",
   "version": "1.0.0",
-  "description": "One click to save all your tabs, free up memory, and restore them anytime. Your tab harbor.",
+  "description": "Custom new tab page with clock, search, shortcuts, and themes. Lightweight and beautiful.",
   "author": "jichinx",
   "permissions": [
     "tabs",
