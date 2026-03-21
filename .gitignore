@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+*.zip
+
+# Temp files
+*.log
+
+# WorkBuddy
+.workbuddy/
+
+# Test artifacts
+test/screenshots/
+test/*.bak

@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Harbor",
+  "version": "1.0.0",
+  "description": "One click to save all your tabs, free up memory, and restore them anytime. Your tab harbor.",
+  "author": "jichinx",
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab/newtab.html"
+  },
+  "commands": {
+    "open-harbor": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Open Tab Harbor popup"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

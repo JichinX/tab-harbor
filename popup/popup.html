@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=320, initial-scale=1.0">
+<title>添加到快捷导航</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+<div class="page-card">
+  <img class="page-favicon" id="favicon" src="" alt="">
+  <div class="page-info">
+    <div class="page-title" id="pTitle">加载中...</div>
+    <div class="page-url" id="pUrl"></div>
+  </div>
+</div>
+
+<div class="body">
+  <div class="exists hidden" id="existsHint">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12.01" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span>该网站已在快捷导航中</span>
+  </div>
+
+  <div class="icon-row">
+    <div class="icon-preview" id="iconPreview">A</div>
+    <div class="icon-right">
+      <div class="icon-label">图标预览</div>
+      <div class="icon-actions">
+        <button class="icon-btn on" id="autoBtn">自动获取</button>
+        <button class="icon-btn" id="customBtn">文字</button>
+        <button class="icon-btn" id="urlBtn">自定义地址</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="fg hidden" id="customFg">
+    <input class="fi" id="customIcon" placeholder="图标（文字或 Emoji）" maxlength="2">
+  </div>
+
+  <div class="fg hidden" id="urlFg">
+    <input class="fi" id="iconUrl" placeholder="图标地址，如 https://example.com/favicon.ico">
+    <div class="icon-url-status hidden" id="iconUrlStatus"></div>
+  </div>
+
+  <div class="fg hidden" id="autoStatus">
+    <div class="icon-url-status" id="autoUrlStatus"></div>
+  </div>
+
+  <div class="fg">
+    <label class="fl">名称</label>
+    <input class="fi" id="siteName" placeholder="网站名称" maxlength="20">
+  </div>
+
+  <div class="fg">
+    <label class="fl">网址</label>
+    <input class="fi" id="siteUrl" placeholder="https://example.com">
+  </div>
+
+  <div class="fg">
+    <label class="fl">图标颜色</label>
+    <div class="colors" id="colors"></div>
+  </div>
+
+  <div class="fg">
+    <label class="fl">添加到</label>
+    <div class="targets" id="targets"></div>
+  </div>
+</div>
+
+<div class="foot">
+  <button class="btn btn-g" id="cancelBtn">取消</button>
+  <button class="btn btn-p" id="addBtn">添加</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="popup.js"></script>
+</body>
+</html>

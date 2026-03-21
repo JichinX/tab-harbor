@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新标签页 — Tab Harbor</title>
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+<!-- 动态背景 -->
+<div class="bg" aria-hidden="true">
+  <div class="bg-g"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="bg-grid"></div>
+</div>
+
+<!-- 工具栏 -->
+<nav class="toolbar" role="toolbar" aria-label="页面工具">
+  <button class="tb" id="themeBtn" aria-label="切换主题" title="切换主题">
+    <svg id="icoD" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <svg id="icoL" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg id="icoS" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    <svg id="icoA" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>
+  </button>
+</nav>
+
+<!-- 主页面 -->
+<main class="page">
+  <!-- 时钟 + 每日互动 -->
+  <section class="clock" aria-label="时间和日期">
+    <div class="clock-t" id="cT">00:00<span class="clock-s" id="cS">00</span></div>
+    <div class="clock-d" id="cD"></div>
+    <div class="daily" id="dailyCard">
+      <div class="daily-tag" id="dailyTag"></div>
+      <div class="daily-q" id="dailyQ" role="button" tabindex="0" aria-expanded="false"></div>
+      <div class="daily-a" id="dailyA"><div class="daily-a-inner" id="dailyAText"></div></div>
+      <div class="daily-hint" id="dailyHint">点击问题查看答案</div>
+    </div>
+  </section>
+
+  <!-- 搜索 -->
+  <section class="search" aria-label="搜索">
+    <div class="search-wrap">
+      <svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="sb" id="sI" type="search" placeholder="搜索或输入网址..." autocomplete="off" aria-label="搜索" />
+      <button class="eb" id="eBtn" aria-label="切换搜索引擎" aria-expanded="false"><span id="eL">G</span></button>
+    </div>
+    <div class="ed" id="eD" role="listbox">
+      <button class="eo sel" data-u="https://www.google.com/search?q=" data-l="G" data-c="#4285F4" role="option"><span class="el" style="background:#4285F4">G</span>Google</button>
+      <button class="eo" data-u="https://www.bing.com/search?q=" data-l="B" data-c="#00809d" role="option"><span class="el" style="background:#00809d">B</span>Bing</button>
+      <button class="eo" data-u="https://www.baidu.com/s?wd=" data-l="百" data-c="#306cff" role="option"><span class="el" style="background:#306cff">百</span>百度</button>
+      <button class="eo" data-u="https://duckduckgo.com/?q=" data-l="D" data-c="#de5833" role="option"><span class="el" style="background:#de5833">D</span>DuckDuckGo</button>
+    </div>
+  </section>
+
+  <!-- 快捷导航 -->
+  <section class="shortcuts" aria-label="快捷导航">
+    <div class="sh"><span class="st">快捷导航</span><button class="sa" id="mgScBtn">管理</button></div>
+    <div class="sg" id="sG"></div>
+  </section>
+
+  <!-- 高频使用 -->
+  <section class="recent" aria-label="高频使用">
+    <div class="sh">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <span class="st">高频使用</span>
+        <div class="fr-inline-search" id="frInlineSearch">
+          <button class="fr-search-icon" id="frSearchIcon" title="搜索">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <input class="fr-search-input-inline" id="frSearchInput" placeholder="搜索..." autocomplete="off">
+          <button class="fr-search-clear" id="frSearchClear" title="关闭">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <button class="sa" id="clearRecent">管理</button>
+    </div>
+    <div class="rg" id="rG"></div>
+  </section>
+
+  <footer class="footer"></footer>
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- 添加快捷导航弹窗 -->
+<div class="modal-mask" id="addModal">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">添加快捷导航</span><button class="modal-close" data-close="addModal">✕</button></div>
+    <div class="modal-body">
+      <div class="icon-preview">
+        <div class="icon-preview-box" id="iconPreview" style="background:var(--accent)">A</div>
+        <div>
+          <div style="font-size:.75rem;color:var(--tx3);margin-bottom:.375rem">图标预览</div>
+          <div class="icon-actions">
+            <button class="btn btn-g" style="font-size:.6875rem;padding:.25rem .625rem" id="fetchIconBtn" title="从网站自动获取图标">自动获取</button>
+            <button class="btn btn-g" style="font-size:.6875rem;padding:.25rem .625rem" id="customIconBtn" title="使用自定义文字图标">自定义</button>
+          </div>
+        </div>
+      </div>
+      <div class="fg" id="customIconFg" style="display:none"><label class="fl">自定义图标（文字或 Emoji）</label><input class="fi" id="addIcon" placeholder="如：🏠 或 Blog" maxlength="2"></div>
+      <div class="fg"><label class="fl">网站名称</label><input class="fi" id="addName" placeholder="如：我的博客" maxlength="20"></div>
+      <div class="fg"><label class="fl">网址</label><input class="fi" id="addUrl" placeholder="如：https://example.com"></div>
+      <div class="fg"><label class="fl">图标颜色</label><div class="colors" id="addColors"></div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-g" data-close="addModal">取消</button><button class="btn btn-p" id="addConfirm">添加</button></div>
+  </div>
+</div>
+
+<!-- 管理面板弹窗 -->
+<div class="modal-mask" id="mgModal">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">管理面板</span><button class="modal-close" data-close="mgModal">✕</button></div>
+    <div class="modal-body">
+      <div class="tabs">
+        <button class="tab on" data-tab="sc">快捷导航</button>
+        <button class="tab" data-tab="fr">高频使用</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:.75rem;gap:.375rem">
+        <button class="btn btn-p" style="font-size:.75rem;padding:.375rem .875rem" id="mgAddBtn">+ 添加</button>
+        <button class="btn btn-g" style="font-size:.75rem;padding:.375rem .875rem" id="mgAddFolderBtn">+ 文件夹</button>
+      </div>
+      <div class="mg-panel on" id="panelSc"></div>
+      <div class="mg-panel" id="panelFr"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-g" data-close="mgModal">关闭</button></div>
+  </div>
+</div>
+
+<!-- 文件夹内容弹窗 -->
+<div class="modal-mask" id="folderModal">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="folderTitle">文件夹</span><button class="modal-close" data-close="folderModal">✕</button></div>
+    <div class="modal-body" id="folderBody"></div>
+    <div class="modal-foot"><button class="btn btn-g" id="folderAddBtn">+ 添加网站</button><button class="btn btn-g" data-close="folderModal">关闭</button></div>
+  </div>
+</div>
+
+<!-- 添加网站到文件夹弹窗 -->
+<div class="modal-mask" id="folderAddSiteModal">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">添加网站到文件夹</span><button class="modal-close" data-close="folderAddSiteModal">✕</button></div>
+    <div class="modal-body">
+      <div class="icon-preview">
+        <div class="icon-preview-box" id="fasIconPreview" style="background:var(--accent)">A</div>
+        <div>
+          <div style="font-size:.75rem;color:var(--tx3);margin-bottom:.375rem">图标预览</div>
+          <div class="icon-actions">
+            <button class="btn btn-g" style="font-size:.6875rem;padding:.25rem .625rem" id="fasFetchBtn" title="从网站自动获取图标">自动获取</button>
+            <button class="btn btn-g" style="font-size:.6875rem;padding:.25rem .625rem" id="fasCustomBtn" title="使用自定义文字图标">自定义</button>
+          </div>
+        </div>
+      </div>
+      <div class="fg" id="fasCustomFg" style="display:none"><label class="fl">自定义图标（文字或 Emoji）</label><input class="fi" id="fasIcon" placeholder="如：🏠 或 Blog" maxlength="2"></div>
+      <div class="fg"><label class="fl">网站名称</label><input class="fi" id="fasName" placeholder="如：GitHub" maxlength="20"></div>
+      <div class="fg"><label class="fl">网址</label><input class="fi" id="fasUrl" placeholder="如：https://github.com"></div>
+      <div class="fg"><label class="fl">图标颜色</label><div class="colors" id="fasColors"></div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-g" data-close="folderAddSiteModal">取消</button><button class="btn btn-p" id="fasConfirm">添加</button></div>
+  </div>
+</div>
+
+<!-- 编辑快捷导航弹窗 -->
+<div class="modal-mask" id="editModal">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">编辑快捷导航</span><button class="modal-close" data-close="editModal">✕</button></div>
+    <div class="modal-body">
+      <div class="icon-preview">
+        <div class="icon-preview-box" id="editIconPreview" style="background:var(--accent)">A</div>
+        <div>
+          <div style="font-size:.75rem;color:var(--tx3);margin-bottom:.375rem">图标预览</div>
+          <div class="icon-actions">
+            <button class="btn btn-g" style="font-size:.6875rem;padding:.25rem .625rem" id="editFetchBtn" title="从网站自动获取图标">自动获取</button>
+            <button class="btn btn-g" style="font-size:.6875rem;padding:.25rem .625rem" id="editCustomBtn" title="使用自定义文字图标">自定义</button>
+          </div>
+        </div>
+      </div>
+      <div class="fg" id="editCustomFg" style="display:none"><label class="fl">自定义图标（文字或 Emoji）</label><input class="fi" id="editIcon" placeholder="如：🏠 或 Blog" maxlength="2"></div>
+      <div class="fg"><label class="fl">网站名称</label><input class="fi" id="editName" placeholder="如：我的博客" maxlength="20"></div>
+      <div class="fg"><label class="fl">网址</label><input class="fi" id="editUrl" placeholder="如：https://example.com"></div>
+      <div class="fg"><label class="fl">图标颜色</label><div class="colors" id="editColors"></div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-g" data-close="editModal">取消</button><button class="btn btn-p" id="editConfirm">保存</button></div>
+  </div>
+</div>
+
+<!-- 创建文件夹弹窗 -->
+<div class="modal-mask" id="createFolderModal">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">新建文件夹</span><button class="modal-close" data-close="createFolderModal">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">文件夹名称</label><input class="fi" id="cfName" placeholder="如：工作常用" maxlength="20"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-g" data-close="createFolderModal">取消</button><button class="btn btn-p" id="cfConfirm">创建</button></div>
+  </div>
+</div>
+
+<script src="newtab.js"></script>
+</body>
+</html>
