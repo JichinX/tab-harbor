@@ -1,6 +1,6 @@
 # Tab Harbor
 
-> 自定义新标签页 — 时钟、搜索、快捷导航、高频使用。Glassmorphism UI，零依赖。
+> 自定义新标签页 — 时钟、搜索、快捷导航、主题。轻量美观。 | Custom new tab page with clock, search, shortcuts, and themes.
 
 一款轻量美观的 Chrome 新标签页扩展。替换默认新标签页，提供时钟、每日趣味问答、多引擎搜索、快捷导航网格（支持文件夹和拖拽排序）、高频使用站点追踪，以及暗色/浅色/跟随系统/日出日落自动四种主题模式。
 

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tab Harbor",
   "version": "1.0.0",
-  "description": "Custom new tab page with clock, search, shortcuts, and themes. Lightweight and beautiful.",
+  "description": "自定义新标签页 — 时钟、搜索、快捷导航、主题。轻量美观。 | Custom new tab page with clock, search, shortcuts, and themes.",
   "author": "jichinx",
   "permissions": [
     "tabs",
