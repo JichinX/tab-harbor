@@ -100,6 +100,11 @@ body {
 
 .icon-preview.has-img { font-size: 0; }
 
+/* Spinner for icon loading */
+.icon-spinner { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; }
+.icon-spinner::before { content: ''; width: 16px; height: 16px; border: 2px solid var(--glass-b); border-top-color: var(--accent); border-radius: 50%; animation: iconSpin .7s linear infinite; }
+@keyframes iconSpin { to { transform: rotate(360deg); } }
+
 .icon-right { flex: 1; }
 .icon-label { font-size: .6875rem; color: var(--tx3); margin-bottom: .3rem; }
 .icon-actions { display: flex; gap: .25rem; }

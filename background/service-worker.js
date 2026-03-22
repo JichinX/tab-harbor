@@ -16,6 +16,7 @@ function getDefaultData() {
     settings: {
       theme: 'system',         // 'dark' | 'light' | 'system' | 'auto' (sunrise/sunset)
       searchEngine: 'google',  // 'google' | 'bing' | 'baidu' | 'ddg'
+      faviconApi: '',          // custom favicon API URL, empty = use default (DuckDuckGo)
     },
   };
 }
@@ -45,6 +46,7 @@ async function loadData() {
   if (!data.settings) data.settings = {};
   if (!data.settings.theme) data.settings.theme = 'system';
   if (!data.settings.searchEngine) data.settings.searchEngine = 'google';
+  if (!data.settings.faviconApi) data.settings.faviconApi = '';
   return data;
 }
 
@@ -165,11 +167,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'addShortcut': {
         const result = await addShortcut(message.shortcut);
         sendResponse(result);
+        updateBadge();
         break;
       }
       case 'removeShortcut': {
         await removeShortcut(message.index);
         sendResponse({ success: true });
+        updateBadge();
         break;
       }
       case 'updateShortcutOrder': {
@@ -186,11 +190,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'addSiteToFolder': {
         const result = await addSiteToFolder(message.folderIndex, message.site);
         sendResponse(result);
+        updateBadge();
         break;
       }
       case 'removeSiteFromFolder': {
         await removeSiteFromFolder(message.folderIndex, message.siteIndex);
         sendResponse({ success: true });
+        updateBadge();
         break;
       }
       // ─── Frequent sites ───
@@ -241,6 +247,46 @@ chrome.commands.onCommand.addListener(async (command) => {
     chrome.tabs.create({
       url: chrome.runtime.getURL('popup/popup.html'),
       active: true,
+    });
+  }
+});
+
+// ─── Badge: indicate if current tab is already in shortcuts ────────────────────
+
+async function updateBadge() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      chrome.action.setBadgeText({ text: '' });
+      return;
+    }
+    const d = extractDomain(tab.url);
+    const data = await loadData();
+    const found = data.shortcuts.some(s => {
+      if (s.type === 'folder' && s.children) {
+        return s.children.some(c => extractDomain(c.url) === d);
+      }
+      return s.url && extractDomain(s.url) === d;
+    });
+    if (found) {
+      chrome.action.setBadgeBackgroundColor({ color: '#10b981' });
+      chrome.action.setBadgeText({ text: '✓' });
+    } else {
+      chrome.action.setBadgeText({ text: '' });
+    }
+  } catch {
+    chrome.action.setBadgeText({ text: '' });
+  }
+}
+
+// Update badge when active tab changes
+chrome.tabs.onActivated.addListener(() => updateBadge());
+
+// Update badge when current tab finishes loading
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === 'complete') {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (tab && tab.id === tabId) updateBadge();
     });
   }
 });

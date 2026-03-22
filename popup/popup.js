@@ -22,7 +22,10 @@ function msg(action, extra = {}) {
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function domain(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } }
-function faviconUrl(url) { const d = domain(url); return d ? `https://icons.duckduckgo.com/ip3/${d}.ico` : ''; }
+function isValidDomain(u) { return /^https?:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+([\/?#].*)?$/i.test(u); }
+const DEFAULT_FAVICON_API = 'https://icons.duckduckgo.com/ip3/{domain}.ico';
+let faviconApiUrl = DEFAULT_FAVICON_API;
+function faviconUrl(url) { if (!faviconApiUrl) return ''; try { return faviconApiUrl.replace('{domain}', new URL(url).hostname); } catch { return ''; } }
 
 function showToast(m) {
   const t = $('#toast'); t.textContent = m; t.classList.add('show');
@@ -91,26 +94,42 @@ function updatePreview() {
   if (iconMode === 'auto') {
     const img = faviconUrl(url);
     autoStatus.classList.remove('hidden');
-    if (img) {
+    if (!url || !isValidDomain(url.startsWith('http') ? url : 'https://' + url)) {
+      autoUrlStatus.textContent = url ? '网址格式不正确' : '请输入网址后自动获取';
+      autoUrlStatus.className = 'icon-url-status icon-url-status--fail';
+      iconLoadOk = false;
+      iconPreview.innerHTML = name ? esc(name[0].toUpperCase()) : 'A';
+    } else if (img) {
       autoUrlStatus.textContent = img;
       autoUrlStatus.className = 'icon-url-status icon-url-status--pending';
+      // Show spinner while loading
+      iconPreview.innerHTML = '<div class="icon-spinner"></div>';
+      iconPreview.className = 'icon-preview';
       _imgTest = new Image();
-      _imgTest.onload = () => { iconLoadOk = true; autoUrlStatus.className = 'icon-url-status icon-url-status--ok'; };
+      _imgTest.onload = () => {
+        iconLoadOk = true;
+        autoUrlStatus.className = 'icon-url-status icon-url-status--ok';
+        iconPreview.style.backgroundImage = `url(${img})`;
+        iconPreview.innerHTML = '';
+        iconPreview.className = 'icon-preview has-img';
+      };
       _imgTest.onerror = () => {
         iconLoadOk = false;
         autoUrlStatus.textContent = '自动获取失败，请使用自定义地址';
         autoUrlStatus.className = 'icon-url-status icon-url-status--fail';
+        iconPreview.innerHTML = name ? esc(name[0].toUpperCase()) : 'A';
+        iconPreview.className = 'icon-preview';
       };
       setTimeout(() => {
         if (iconLoadOk === null) {
           iconLoadOk = false;
           autoUrlStatus.textContent = '自动获取超时，请使用自定义地址';
           autoUrlStatus.className = 'icon-url-status icon-url-status--fail';
+          iconPreview.innerHTML = name ? esc(name[0].toUpperCase()) : 'A';
+          iconPreview.className = 'icon-preview';
         }
       }, 5000);
       _imgTest.src = img;
-      iconPreview.style.backgroundImage = `url(${img})`;
-      iconPreview.className = 'icon-preview has-img';
     } else {
       autoUrlStatus.textContent = '请输入网址后自动获取';
       autoUrlStatus.className = 'icon-url-status icon-url-status--pending';
@@ -122,14 +141,17 @@ function updatePreview() {
   } else if (iconMode === 'url' && customUrlVal) {
     autoStatus.classList.add('hidden');
     iconUrlStatus.classList.remove('hidden');
-    iconUrlStatus.textContent = '检测中...';
+    iconUrlStatus.textContent = customUrlVal;
     iconUrlStatus.className = 'icon-url-status icon-url-status--pending';
+    // Show spinner while loading
+    iconPreview.innerHTML = '<div class="icon-spinner"></div>';
+    iconPreview.className = 'icon-preview';
     _imgTest = new Image();
     _imgTest.onload = () => {
       iconLoadOk = true;
-      iconUrlStatus.textContent = customUrlVal;
       iconUrlStatus.className = 'icon-url-status icon-url-status--ok';
       iconPreview.style.backgroundImage = `url(${customUrlVal})`;
+      iconPreview.innerHTML = '';
       iconPreview.className = 'icon-preview has-img';
     };
     _imgTest.onerror = () => {
@@ -137,10 +159,9 @@ function updatePreview() {
       iconUrlStatus.textContent = '图标加载失败，请检查地址';
       iconUrlStatus.className = 'icon-url-status icon-url-status--fail';
       iconPreview.innerHTML = name ? esc(name[0].toUpperCase()) : 'A';
+      iconPreview.className = 'icon-preview';
     };
     _imgTest.src = customUrlVal;
-    iconPreview.style.backgroundImage = `url(${customUrlVal})`;
-    iconPreview.className = 'icon-preview has-img';
   } else {
     autoStatus.classList.add('hidden');
     iconPreview.innerHTML = name ? esc(name[0].toUpperCase()) : 'A';
@@ -240,8 +261,10 @@ addBtn.addEventListener('click', async () => {
     imgUrl = '';
   } else if (iconMode === 'url' && customUrlVal && iconLoadOk !== false) {
     imgUrl = customUrlVal;
-  } else {
+  } else if (iconMode === 'auto' && iconLoadOk === true) {
     imgUrl = faviconUrl(url);
+  } else {
+    imgUrl = '';
   }
   const shortcut = {
     name,
@@ -285,7 +308,7 @@ siteName.addEventListener('keydown', e => { if (e.key === 'Enter') siteUrl.focus
     pTitle.textContent = currentTab.title || '未知页面';
     pUrl.textContent = d || currentTab.url;
     siteName.value = currentTab.title || d || '';
-    siteUrl.value = currentTab.url || '';
+    try { siteUrl.value = new URL(currentTab.url).origin; } catch { siteUrl.value = currentTab.url || ''; }
   } else {
     pTitle.textContent = '无法获取页面信息';
     pUrl.textContent = '';
@@ -295,6 +318,7 @@ siteName.addEventListener('keydown', e => { if (e.key === 'Enter') siteUrl.focus
   const dataResult = await msg('loadData');
   if (dataResult.success && dataResult.data) {
     appData = dataResult.data;
+    if (appData.settings?.faviconApi) faviconApiUrl = appData.settings.faviconApi;
     checkDuplicate(siteUrl.value.trim());
   }
 

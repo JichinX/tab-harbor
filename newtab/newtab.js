@@ -5,8 +5,11 @@ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 function msg(action,extra={}){return new Promise(r=>{chrome.runtime.sendMessage({action,...extra},resp=>{if(chrome.runtime.lastError){console.error(chrome.runtime.lastError.message);r({success:false});return}r(resp||{success:false})})})}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function domain(u){try{return new URL(u).hostname.replace(/^www\./,'')}catch{return 'unknown'}}
-function favicon(u){try{return`https://icons.duckduckgo.com/ip3/${new URL(u).hostname}.ico`}catch{return ''}}
+const DEFAULT_FAVICON_API='https://icons.duckduckgo.com/ip3/{domain}.ico';
+let faviconApiUrl=DEFAULT_FAVICON_API;
+function favicon(u){if(!faviconApiUrl)return'';try{return faviconApiUrl.replace('{domain}',new URL(u).hostname)}catch{return ''}}
 function fixUrl(u){if(!u)return '';return /^https?:\/\//i.test(u)?u:'https://'+u}
+function isValidDomain(u){return /^https?:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+([\/?#].*)?$/i.test(u)}
 function showToast(m,dur=2000){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),dur)}
 const COLORS=['#6366f1','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#8b5cf6','#06b6d4','#f97316','#000'];
 const FOLDER_SVG='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
@@ -16,6 +19,7 @@ const FOLDER_SVG_SM='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"
 let D=null,curTab='sc',folderIdx=-1,dragSrc=null;
 let addIMode='auto',addIVal='',selColor=COLORS[0],fasIMode='auto',fasIVal='',fasColor=COLORS[0];
 let editIMode='auto',editIVal='',editColor=COLORS[0],editIdx=-1;
+let addIconOk=null,fasIconOk=null,editIconOk=null; // null=pending, true=ok, false=failed
 let engineUrl='https://www.google.com/search?q=',curTheme='system',themeTimer=null;
 
 // Migrate old shortcuts
@@ -76,69 +80,79 @@ $$('[data-close]').forEach(b=>{b.addEventListener('click',()=>closeModal(b.datas
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$$('.modal-mask.on').forEach(m=>closeModal(m.id))});
 
 // ── Shortcuts ──
-function buildIcon(s){return s.imgUrl?`<div class="sci has-img sci-loading" style="background-image:url(${s.imgUrl});background-color:${s.color}" data-favicon="${s.imgUrl}"></div>`:`<div class="sci" style="background:${s.color}">${esc(s.icon)}</div>`}
-function renderShortcuts(){const g=$('#sG'),sc=getShortcuts();let h=sc.map((s,i)=>s.type==='folder'?`<div class="sc" data-i="${i}"><div class="sci" style="background:var(--bg3);color:var(--tx2)">${FOLDER_SVG}</div><span class="scn">${esc(s.name)}</span></div>`:`<div class="sc" data-i="${i}">${buildIcon(s)}<span class="scn">${esc(s.name)}</span></div>`).join('');h+='<div class="sc sc-add" id="scAdd"><div class="sci">+</div><span class="scn">添加</span></div>';g.innerHTML=h;g.querySelectorAll('.sc:not(.sc-add)').forEach(el=>{el.addEventListener('click',()=>{const s=sc[+el.dataset.i];if(!s)return;if(s.type==='folder'){openFolderModal(+el.dataset.i);return}if(s.url)window.open(s.url,'_blank')})});$('#scAdd').addEventListener('click',openAddModal);attachIconLoadCheck(g)}
-// Post-render: detect favicon load on .sci.has-img and remove shimmer
-function attachIconLoadCheck(container){
-  const els=container.querySelectorAll('.sci.sci-loading');
-  if(!els.length)return;
-  const TIMEOUT=3000;
-  els.forEach(el=>{
-    const url=el.dataset.favicon;
-    if(!url){el.classList.remove('sci-loading');return}
-    const img=new Image();
-    const timer=setTimeout(()=>{el.classList.remove('sci-loading')},TIMEOUT);
-    img.onload=()=>{clearTimeout(timer);el.classList.remove('sci-loading')};
-    img.onerror=()=>{clearTimeout(timer);el.classList.remove('sci-loading')};
-    img.src=url;
-  });
-}
+function buildIcon(s){return s.imgUrl?`<div class="sci has-img" style="background-image:url(${s.imgUrl});background-color:${s.color}"></div>`:`<div class="sci" style="background:${s.color}">${esc(s.icon)}</div>`}
+function renderShortcuts(){const g=$('#sG'),sc=getShortcuts();let h=sc.map((s,i)=>s.type==='folder'?`<div class="sc" data-i="${i}"><div class="sci" style="background:var(--bg3);color:var(--tx2)">${FOLDER_SVG}</div><span class="scn">${esc(s.name)}</span></div>`:`<div class="sc" data-i="${i}">${buildIcon(s)}<span class="scn">${esc(s.name)}</span></div>`).join('');h+='<div class="sc sc-add" id="scAdd"><div class="sci">+</div><span class="scn">添加</span></div>';g.innerHTML=h;g.querySelectorAll('.sc:not(.sc-add)').forEach(el=>{el.addEventListener('click',()=>{const s=sc[+el.dataset.i];if(!s)return;if(s.type==='folder'){openFolderModal(+el.dataset.i);return}if(s.url)window.open(s.url,'_blank')})});$('#scAdd').addEventListener('click',openAddModal)}
 
 // ── Color Picker ──
 function renderCP(cid,ctx){const c=ctx==='add'?selColor:ctx==='fas'?fasColor:editColor,el=$('#'+cid);el.innerHTML=COLORS.map(cl=>`<div class="co${cl===c?' sel':''}" style="background:${cl}" data-c="${cl}"></div>`).join('');el.querySelectorAll('.co').forEach(b=>{b.addEventListener('click',()=>{if(ctx==='add'){selColor=b.dataset.c;renderCP(cid,ctx);updateIP(addIMode,addIVal,selColor,$('#addName').value.trim(),$('#addUrl').value.trim(),'iconPreview')}else if(ctx==='fas'){fasColor=b.dataset.c;renderCP(cid,ctx);updateIP(fasIMode,fasIVal,fasColor,$('#fasName').value.trim(),$('#fasUrl').value.trim(),'fasIconPreview')}else{editColor=b.dataset.c;renderCP(cid,ctx);updateIP(editIMode,editIVal,editColor,$('#editName').value.trim(),$('#editUrl').value.trim(),'editIconPreview')}})})}
 
 // ── Icon Preview with load detection ──
 let _iconLoadTimer=null;
+const _statusMap={iconPreview:'addIconUrlStatus',fasIconPreview:'fasIconUrlStatus',editIconPreview:'editIconUrlStatus'};
+const _okMap={iconPreview:()=>addIconOk,fasIconPreview:()=>fasIconOk,editIconPreview:()=>editIconOk};
+const _okSetMap={iconPreview:v=>{addIconOk=v},fasIconPreview:v=>{fasIconOk=v},editIconPreview:v=>{editIconOk=v}};
 function updateIP(mode,val,color,name,url,boxId,onFail){
   const box=$('#'+boxId);
+  const statusId=_statusMap[boxId];
+  const statusEl=statusId?$('#'+statusId):null;
   box.style.background=color;
   box.style.backgroundImage='';
   box.innerHTML='';
   box.className='icon-preview-box';
+  if(statusEl){statusEl.textContent='';statusEl.className='icon-url-status'}
+  _okSetMap[boxId]?.(null);
   if(_iconLoadTimer){clearTimeout(_iconLoadTimer);_iconLoadTimer=null}
   if(mode==='custom'&&val){
     box.innerHTML=esc(val);
+    _okSetMap[boxId]?.(true);
     return;
   }
-  const img=favicon(fixUrl(url));
+  const fullUrl=fixUrl(url);
+  // URL 校验：必须有合法域名才尝试获取图标
+  if(!fullUrl||!isValidDomain(fullUrl)){
+    box.innerHTML=name?name[0].toUpperCase():'A';
+    if(statusEl&&url){statusEl.textContent='网址格式不正确';statusEl.className='icon-url-status icon-url-status--fail'}
+    else if(statusEl){statusEl.textContent='请输入网址后自动获取';statusEl.className='icon-url-status icon-url-status--pending'}
+    _okSetMap[boxId]?.(false);
+    return;
+  }
+  const img=favicon(fullUrl);
   if(!img){
     box.innerHTML=name?name[0].toUpperCase():'A';
+    if(statusEl){statusEl.textContent='请输入网址后自动获取';statusEl.className='icon-url-status icon-url-status--pending'}
+    _okSetMap[boxId]?.(false);
     return;
   }
-  // Try to load the favicon image
+  // Show favicon URL status + spinner while loading
+  if(statusEl){statusEl.textContent=img;statusEl.className='icon-url-status icon-url-status--pending'}
   const testImg=new Image();
   testImg.crossOrigin='anonymous';
-  box.innerHTML='<span class="icon-loading">...</span>';
+  box.innerHTML='<div class="icon-spinner"></div>';
   testImg.onload=()=>{
     if(_iconLoadTimer)clearTimeout(_iconLoadTimer);
     _iconLoadTimer=null;
     box.style.backgroundImage=`url(${img})`;
     box.innerHTML='';
     box.className='icon-preview-box has-img';
+    if(statusEl)statusEl.className='icon-url-status icon-url-status--ok';
+    _okSetMap[boxId]?.(true);
   };
   testImg.onerror=()=>{
     if(_iconLoadTimer)clearTimeout(_iconLoadTimer);
     _iconLoadTimer=null;
-    // Fallback: show first letter
     box.innerHTML=name?name[0].toUpperCase():'A';
     box.className='icon-preview-box';
+    if(statusEl){statusEl.textContent='图标获取失败，请使用自定义图标';statusEl.className='icon-url-status icon-url-status--fail'}
+    _okSetMap[boxId]?.(false);
     if(typeof onFail==='function')onFail();
   };
   // Timeout: if no response in 3s, fallback
   _iconLoadTimer=setTimeout(()=>{
-    if(!box.classList.contains('has-img')&&box.querySelector('.icon-loading')){
+    if(!box.classList.contains('has-img')&&box.querySelector('.icon-spinner')){
       box.innerHTML=name?name[0].toUpperCase():'A';
       box.className='icon-preview-box';
+      if(statusEl){statusEl.textContent='图标获取超时，请使用自定义图标';statusEl.className='icon-url-status icon-url-status--fail'}
+      _okSetMap[boxId]?.(false);
       if(typeof onFail==='function')onFail();
     }
   },3000);
@@ -150,7 +164,7 @@ $('#customIconBtn').addEventListener('click',()=>{addIMode='custom';$('#customIc
 $('#addIcon').addEventListener('input',e=>{addIVal=e.target.value;updateIP(addIMode,addIVal,selColor,$('#addName').value.trim(),$('#addUrl').value.trim(),'iconPreview')});
 $('#addName').addEventListener('input',()=>updateIP(addIMode,addIVal,selColor,$('#addName').value.trim(),$('#addUrl').value.trim(),'iconPreview'));
 $('#addUrl').addEventListener('input',()=>{const url=$('#addUrl').value.trim();if(addIMode==='auto'&&url){addIVal='';$('#customIconFg').style.display='none'}updateIP(addIMode,addIVal,selColor,$('#addName').value.trim(),url,'iconPreview')});
-$('#addConfirm').addEventListener('click',async()=>{const name=$('#addName').value.trim(),url=fixUrl($('#addUrl').value.trim());if(!name){showToast('请输入网站名称');return}if(!url){showToast('请输入网址');return}const r=await msg('addShortcut',{shortcut:{name,url,color:selColor,icon:(addIMode==='custom'&&addIVal)?addIVal:name[0].toUpperCase(),imgUrl:favicon(url)}});if(!r.success){showToast(r.message||'添加失败');return}closeModal('addModal');showToast('已添加 '+name);await refreshUI()});
+$('#addConfirm').addEventListener('click',async()=>{const name=$('#addName').value.trim(),url=fixUrl($('#addUrl').value.trim());if(!name){showToast('请输入网站名称');return}if(!url){showToast('请输入网址');return}const imgIco=(addIMode==='auto'&&addIconOk===true)?favicon(url):'';const r=await msg('addShortcut',{shortcut:{name,url,color:selColor,icon:(addIMode==='custom'&&addIVal)?addIVal:name[0].toUpperCase(),imgUrl:imgIco}});if(!r.success){showToast(r.message||'添加失败');return}closeModal('addModal');showToast('已添加 '+name);await refreshUI()});
 $('#addUrl').addEventListener('keydown',e=>{if(e.key==='Enter')$('#addConfirm').click()});
 $('#addName').addEventListener('keydown',e=>{if(e.key==='Enter')$('#addUrl').focus()});
 
@@ -158,10 +172,10 @@ $('#addName').addEventListener('keydown',e=>{if(e.key==='Enter')$('#addUrl').foc
 function renderMgSC(){const p=$('#panelSc'),sc=getShortcuts();if(!sc.length){p.innerHTML='<div class="mg-empty">暂无快捷导航，点击上方添加</div>';return}
 p.innerHTML='<div style="font-size:.6875rem;color:var(--tx3);margin-bottom:.5rem">提示：拖拽可调整顺序，拖到文件夹上可移入</div>'+sc.map((s,i)=>{const isF=s.type==='folder';const ico=isF?`<div class="mg-icon" style="background:var(--bg3);color:var(--tx2)">${FOLDER_SVG_SM}</div>`:(s.imgUrl?`<div class="mg-icon has-img" style="background-image:url(${s.imgUrl});background-color:${s.color}"></div>`:`<div class="mg-icon" style="background:${s.color}">${esc(s.icon)}</div>`);const url=isF?`文件夹 · ${(s.children||[]).length} 个网站`:s.url;return `<div class="mg-item" data-i="${i}">${ico}<div class="mg-info"><div class="mg-name">${esc(s.name)}</div><div class="mg-url">${esc(url)}</div></div>${isF?'':`<button class="mg-del" style="color:var(--accent);background:var(--accent-l)" data-act="es" title="编辑">✎</button>`}<button class="mg-del" data-act="ds">✕</button></div>`}).join('');
 initDrag();
-p.querySelectorAll('[data-act="ds"]').forEach(b=>b.addEventListener('click',async()=>{await msg('removeShortcut',{index:+b.closest('.mg-item').dataset.i});showToast('已删除');await refreshUI();renderMgSC()}));
+p.querySelectorAll('[data-act="ds"]').forEach(b=>b.addEventListener('click',async()=>{const item=b.closest('.mg-item');item.classList.add('removing');await new Promise(r=>setTimeout(r,400));await msg('removeShortcut',{index:+item.dataset.i});showToast('已删除');await refreshUI();renderMgSC()}));
 p.querySelectorAll('[data-act="es"]').forEach(b=>b.addEventListener('click',()=>openEditModal(+b.closest('.mg-item').dataset.i)));
 p.querySelectorAll('[data-act="ef"]').forEach(b=>b.addEventListener('click',()=>openFolderModal(+b.closest('.mg-item').dataset.i)))}
-function renderMgFR(){const p=$('#panelFr'),sites=D.frequentSites||[];if(!sites.length){p.innerHTML='<div class="mg-empty">暂无高频使用记录</div>';return}p.innerHTML=sites.map((s,i)=>`<div class="mg-item" data-i="${i}"><div class="mg-icon" style="background:${s.color}">${esc(s.letter)}</div><div class="mg-info"><div class="mg-name">${esc(s.title)}</div><div class="mg-url">${esc(s.url)} · ${s.freq} 次/周</div></div><button class="mg-del" data-act="df">✕</button></div>`).join('');p.querySelectorAll('[data-act="df"]').forEach(b=>b.addEventListener('click',async()=>{await msg('removeFrequentSite',{index:+b.closest('.mg-item').dataset.i});showToast('已删除');await refreshUI();renderMgFR();renderRecent()}))}
+function renderMgFR(){const p=$('#panelFr'),sites=D.frequentSites||[];if(!sites.length){p.innerHTML='<div class="mg-empty">暂无高频使用记录</div>';return}p.innerHTML=sites.map((s,i)=>`<div class="mg-item" data-i="${i}"><div class="mg-icon" style="background:${s.color}">${esc(s.letter)}</div><div class="mg-info"><div class="mg-name">${esc(s.title)}</div><div class="mg-url">${esc(s.url)} · ${s.freq} 次/周</div></div><button class="mg-del" data-act="df">✕</button></div>`).join('');p.querySelectorAll('[data-act="df"]').forEach(b=>b.addEventListener('click',async()=>{const item=b.closest('.mg-item');item.classList.add('removing');await new Promise(r=>setTimeout(r,400));await msg('removeFrequentSite',{index:+item.dataset.i});showToast('已删除');await refreshUI();renderMgFR();renderRecent()}))}
 function switchTab(t){curTab=t;$$('.tabs .tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));$$('.mg-panel').forEach(x=>x.classList.toggle('on',x.id===(t==='sc'?'panelSc':'panelFr')));$('#mgAddBtn').style.display=t==='sc'?'inline-flex':'none';$('#mgAddFolderBtn').style.display=t==='sc'?'inline-flex':'none'}
 $$('.tabs .tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
 $('#mgScBtn').addEventListener('click',()=>{switchTab('sc');renderMgSC();renderMgFR();openModal('mgModal')});
@@ -178,7 +192,7 @@ $('#editCustomBtn').addEventListener('click',()=>{editIMode='custom';$('#editCus
 $('#editIcon').addEventListener('input',e=>{editIVal=e.target.value;updateIP(editIMode,editIVal,editColor,$('#editName').value.trim(),$('#editUrl').value.trim(),'editIconPreview')});
 $('#editName').addEventListener('input',()=>updateIP(editIMode,editIVal,editColor,$('#editName').value.trim(),$('#editUrl').value.trim(),'editIconPreview'));
 $('#editUrl').addEventListener('input',()=>{const url=$('#editUrl').value.trim();if(editIMode==='auto'&&url){editIVal='';$('#editCustomFg').style.display='none'}updateIP(editIMode,editIVal,editColor,$('#editName').value.trim(),url,'editIconPreview')});
-$('#editConfirm').addEventListener('click',async()=>{const name=$('#editName').value.trim(),url=fixUrl($('#editUrl').value.trim());if(!name){showToast('请输入网站名称');return}if(!url){showToast('请输入网址');return}const sc=getShortcuts();const icon=(editIMode==='custom'&&editIVal)?editIVal:name[0].toUpperCase();sc[editIdx]={...sc[editIdx],name,url,color:editColor,icon,imgUrl:favicon(url)};await msg('updateShortcutOrder',{shortcuts:sc});closeModal('editModal');showToast('已更新');await refreshUI();renderMgSC()});
+$('#editConfirm').addEventListener('click',async()=>{const name=$('#editName').value.trim(),url=fixUrl($('#editUrl').value.trim());if(!name){showToast('请输入网站名称');return}if(!url){showToast('请输入网址');return}const sc=getShortcuts();const icon=(editIMode==='custom'&&editIVal)?editIVal:name[0].toUpperCase();const imgIco=(editIMode==='auto'&&editIconOk===true)?favicon(url):'';sc[editIdx]={...sc[editIdx],name,url,color:editColor,icon,imgUrl:imgIco};await msg('updateShortcutOrder',{shortcuts:sc});closeModal('editModal');showToast('已更新');await refreshUI();renderMgSC()});
 $('#editUrl').addEventListener('keydown',e=>{if(e.key==='Enter')$('#editConfirm').click()});
 $('#editName').addEventListener('keydown',e=>{if(e.key==='Enter')$('#editUrl').focus()});
 
@@ -308,7 +322,7 @@ function openFolderModal(idx){folderIdx=idx;const f=(D.shortcuts||[])[idx];if(!f
 function renderFolderContent(){const body=$('#folderBody'),f=(D.shortcuts||[])[folderIdx];if(!f||!(f.children||[]).length){body.innerHTML='<div class="folder-empty">文件夹为空，点击下方添加网站</div>';return}
 body.innerHTML=f.children.map((s,i)=>{const ico=s.imgUrl?`<div class="mg-icon has-img" style="background-image:url(${s.imgUrl});background-color:${s.color}"></div>`:`<div class="mg-icon" style="background:${s.color}">${esc(s.icon)}</div>`;return `<div class="folder-item" data-ci="${i}">${ico}<div class="mg-info"><div class="mg-name">${esc(s.name)}</div><div class="mg-url">${esc(s.url)}</div></div><button class="mg-del" data-act="dc">✕</button></div>`}).join('');
 body.querySelectorAll('.folder-item').forEach(el=>{el.addEventListener('click',e=>{if(e.target.closest('.mg-del'))return;const ci=+el.dataset.ci,child=D.shortcuts[folderIdx]?.children?.[ci];if(child?.url)window.open(child.url,'_blank')})});
-body.querySelectorAll('[data-act="dc"]').forEach(b=>b.addEventListener('click',async()=>{await msg('removeSiteFromFolder',{folderIndex:folderIdx,siteIndex:+b.closest('.folder-item').dataset.ci});showToast('已删除');await refreshUI();renderFolderContent();renderMgSC()}))}
+body.querySelectorAll('[data-act="dc"]').forEach(b=>b.addEventListener('click',async()=>{const item=b.closest('.folder-item');item.classList.add('removing');await new Promise(r=>setTimeout(r,400));await msg('removeSiteFromFolder',{folderIndex:folderIdx,siteIndex:+item.dataset.ci});showToast('已删除');await refreshUI();renderFolderContent();renderMgSC()}))}
 
 // Folder add site
 function updateFIP(){updateIP(fasIMode,fasIVal,fasColor,$('#fasName').value.trim(),$('#fasUrl').value.trim(),'fasIconPreview')}
@@ -318,14 +332,14 @@ $('#fasCustomBtn').addEventListener('click',()=>{fasIMode='custom';$('#fasCustom
 $('#fasIcon').addEventListener('input',e=>{fasIVal=e.target.value;updateFIP()});
 $('#fasName').addEventListener('input',updateFIP);
 $('#fasUrl').addEventListener('input',()=>{const url=$('#fasUrl').value.trim();if(fasIMode==='auto'&&url){fasIVal='';$('#fasCustomFg').style.display='none'}updateFIP()});
-$('#fasConfirm').addEventListener('click',async()=>{const name=$('#fasName').value.trim(),url=fixUrl($('#fasUrl').value.trim());if(!name){showToast('请输入网站名称');return}if(!url){showToast('请输入网址');return}await msg('addSiteToFolder',{folderIndex:folderIdx,site:{name,url,color:fasColor,icon:(fasIMode==='custom'&&fasIVal)?fasIVal:name[0].toUpperCase(),imgUrl:favicon(url)}});closeModal('folderAddSiteModal');showToast('已添加到文件夹');await refreshUI();renderFolderContent();renderMgSC()});
+$('#fasConfirm').addEventListener('click',async()=>{const name=$('#fasName').value.trim(),url=fixUrl($('#fasUrl').value.trim());if(!name){showToast('请输入网站名称');return}if(!url){showToast('请输入网址');return}const imgIco=(fasIMode==='auto'&&fasIconOk===true)?favicon(url):'';await msg('addSiteToFolder',{folderIndex:folderIdx,site:{name,url,color:fasColor,icon:(fasIMode==='custom'&&fasIVal)?fasIVal:name[0].toUpperCase(),imgUrl:imgIco}});closeModal('folderAddSiteModal');showToast('已添加到文件夹');await refreshUI();renderFolderContent();renderMgSC()});
 $('#fasUrl').addEventListener('keydown',e=>{if(e.key==='Enter')$('#fasConfirm').click()});
 
 // ── Frequent Sites ──
 function renderRecent(filter=''){const g=$('#rG'),kw=(filter||'').toLowerCase(),all=D.frequentSites||[],sites=all.map((s,i)=>({...s,_i:i})).filter(s=>!kw||s.title.toLowerCase().includes(kw)||s.url.toLowerCase().includes(kw));
 if(!sites.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--tx3);font-size:.875rem">${kw?'没有找到匹配的站点':'暂无高频使用记录'}</div>`;return}
 g.innerHTML=sites.map(s=>`<a class="rc" href="https://${esc(s.url)}" target="_blank" rel="noopener"><div class="rcf" style="background:${s.color}">${esc(s.letter)}</div><div class="rci"><div class="rct">${esc(s.title)}</div><div class="rcu">${esc(s.url)}</div></div><span class="rcfm">${s.freq} 次/周</span><button class="rx" data-oi="${s._i}" data-act="rf" title="删除">✕</button></a>`).join('');
-g.querySelectorAll('[data-act="rf"]').forEach(b=>b.addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();await msg('removeFrequentSite',{index:+b.dataset.oi});showToast('已删除');await refreshUI();renderRecent($('#frSearchInput')?.value.trim()||'')}))}
+g.querySelectorAll('[data-act="rf"]').forEach(b=>b.addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();const card=b.closest('.rc');card.classList.add('removing');await new Promise(r=>setTimeout(r,400));await msg('removeFrequentSite',{index:+b.dataset.oi});showToast('已删除');await refreshUI();renderRecent($('#frSearchInput')?.value.trim()||'')}))}
 
 $('#frSearchIcon').addEventListener('click',()=>{$('#frInlineSearch').classList.add('on');$('#frSearchInput').focus()});
 $('#frSearchClear').addEventListener('click',()=>{$('#frInlineSearch').classList.remove('on');$('#frSearchInput').value='';renderRecent()});
@@ -337,7 +351,12 @@ $('#frSearchInput').addEventListener('blur',()=>{if(!$('#frSearchInput').value.t
 document.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(e.target.tagName)){e.preventDefault();$('#sI').focus()}});
 
 // ── Refresh UI ──
-async function refreshUI(){const r=await msg('loadData');if(r.success&&r.data)D=r.data;if(!D)return;if(!D.shortcuts)D.shortcuts=[];if(!D.frequentSites)D.frequentSites=[];renderShortcuts();renderRecent()}
+async function refreshUI(){const r=await msg('loadData');if(r.success&&r.data){D=r.data;if(D.settings?.faviconApi)faviconApiUrl=D.settings.faviconApi}if(!D)return;if(!D.shortcuts)D.shortcuts=[];if(!D.frequentSites)D.frequentSites=[];renderShortcuts();renderRecent()}
+
+// ── Settings ──
+$('#settingsBtn').addEventListener('click',async()=>{const r=await msg('loadData');if(r.success&&r.data?.settings?.faviconApi)$('#faviconApi').value=r.data.settings.faviconApi;else $('#faviconApi').value=DEFAULT_FAVICON_API;setTimeout(()=>openModal('settingsModal'),200)});
+$$('#settingsModal .preset-api').forEach(b=>b.addEventListener('click',()=>{$('#faviconApi').value=b.dataset.url}));
+$('#saveSettings').addEventListener('click',async()=>{const url=$('#faviconApi').value.trim();if(!url){showToast('请输入图标获取地址');return}if(!url.includes('{domain}')){showToast('地址需包含 {domain} 占位符');return}faviconApiUrl=url;await msg('updateSettings',{settings:{faviconApi:url}});closeModal('settingsModal');showToast('设置已保存')});
 
 // ── Init ──
 (async()=>{await refreshUI();renderCP('addColors','add');renderCP('fasColors','fas')})();
