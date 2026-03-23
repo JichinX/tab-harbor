@@ -23,7 +23,7 @@ function msg(action, extra = {}) {
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function domain(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } }
 function isValidDomain(u) { return /^https?:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+([\/?#].*)?$/i.test(u); }
-const DEFAULT_FAVICON_API = 'https://icons.duckduckgo.com/ip3/{domain}.ico';
+const DEFAULT_FAVICON_API = 'https://toolb.cn/favicon/{domain}';
 let faviconApiUrl = DEFAULT_FAVICON_API;
 function faviconUrl(url) { if (!faviconApiUrl) return ''; try { return faviconApiUrl.replace('{domain}', new URL(url).hostname); } catch { return ''; } }
 
@@ -83,7 +83,7 @@ let _imgTest = null;
 function updatePreview() {
   const name = siteName.value.trim();
   const url = siteUrl.value.trim();
-  iconPreview.style.background = selColor;
+  iconPreview.style.backgroundColor = selColor;
   iconPreview.style.backgroundImage = '';
   iconPreview.innerHTML = '';
   iconPreview.className = 'icon-preview';
@@ -303,7 +303,7 @@ siteName.addEventListener('keydown', e => { if (e.key === 'Enter') siteUrl.focus
   if (tabResult.success && tabResult.tab) {
     currentTab = tabResult.tab;
     const d = domain(currentTab.url);
-    favicon.src = d ? `https://icons.duckduckgo.com/ip3/${d}.ico` : '';
+    favicon.src = d ? `https://toolb.cn/favicon/${d}` : '';
     favicon.onerror = () => { favicon.style.display = 'none'; };
     pTitle.textContent = currentTab.title || '未知页面';
     pUrl.textContent = d || currentTab.url;

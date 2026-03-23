@@ -16,7 +16,7 @@ function getDefaultData() {
     settings: {
       theme: 'system',         // 'dark' | 'light' | 'system' | 'auto' (sunrise/sunset)
       searchEngine: 'google',  // 'google' | 'bing' | 'baidu' | 'ddg'
-      faviconApi: '',          // custom favicon API URL, empty = use default (DuckDuckGo)
+      faviconApi: '',          // custom favicon API URL, empty = use default (ToolB.cn)
     },
   };
 }
@@ -75,7 +75,7 @@ function migrateShortcut(s) {
     url: s.url,
     color: '#6366f1',
     icon: s.name ? s.name[0].toUpperCase() : domain[0].toUpperCase(),
-    imgUrl: `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+    imgUrl: `https://toolb.cn/favicon/${domain}`,
   };
 }
 

@@ -299,7 +299,8 @@ interface SearchEngine {
 // Google(G,#4285F4) | Bing(B,#00809d) | 百度(百,#306cff) | DDG(D,#de5833)
 
 // Favicon
-// https://icons.duckduckgo.com/ip3/{domain}.ico
+// https://toolb.cn/favicon/{domain}  (默认)
+// https://favicon.pub/{domain}?s=64   (可选)
 ```
 
 ### 限制
@@ -325,7 +326,7 @@ interface SearchEngine {
 - **功能**: 快速添加当前页面到快捷导航
 - **布局**: 页面信息卡(title+url+favicon) → 图标预览(3种模式) → 名称/网址输入 → 颜色选择 → 目标文件夹选择 → 添加/取消按钮
 - **图标模式**:
-  - **自动获取**: DuckDuckGo favicon API，显示加载状态(pending→ok/fail)
+  - **自动获取**: Favicon 服务（默认 ToolB.cn），显示加载状态(pending→ok/fail)
   - **文字**: 自定义文字或 Emoji（max 2字符）
   - **自定义地址**: 任意图片 URL，实时检测加载状态
 - **重复检测**: 自动检查域名是否已存在于快捷导航（含文件夹内），琥珀色警告提示

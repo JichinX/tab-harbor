@@ -5,7 +5,7 @@ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 function msg(action,extra={}){return new Promise(r=>{chrome.runtime.sendMessage({action,...extra},resp=>{if(chrome.runtime.lastError){console.error(chrome.runtime.lastError.message);r({success:false});return}r(resp||{success:false})})})}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function domain(u){try{return new URL(u).hostname.replace(/^www\./,'')}catch{return 'unknown'}}
-const DEFAULT_FAVICON_API='https://icons.duckduckgo.com/ip3/{domain}.ico';
+const DEFAULT_FAVICON_API='https://toolb.cn/favicon/{domain}';
 let faviconApiUrl=DEFAULT_FAVICON_API;
 function favicon(u){if(!faviconApiUrl)return'';try{return faviconApiUrl.replace('{domain}',new URL(u).hostname)}catch{return ''}}
 function fixUrl(u){if(!u)return '';return /^https?:\/\//i.test(u)?u:'https://'+u}
@@ -95,7 +95,7 @@ function updateIP(mode,val,color,name,url,boxId,onFail){
   const box=$('#'+boxId);
   const statusId=_statusMap[boxId];
   const statusEl=statusId?$('#'+statusId):null;
-  box.style.background=color;
+  box.style.backgroundColor=color;
   box.style.backgroundImage='';
   box.innerHTML='';
   box.className='icon-preview-box';
@@ -126,7 +126,6 @@ function updateIP(mode,val,color,name,url,boxId,onFail){
   // Show favicon URL status + spinner while loading
   if(statusEl){statusEl.textContent=img;statusEl.className='icon-url-status icon-url-status--pending'}
   const testImg=new Image();
-  testImg.crossOrigin='anonymous';
   box.innerHTML='<div class="icon-spinner"></div>';
   testImg.onload=()=>{
     if(_iconLoadTimer)clearTimeout(_iconLoadTimer);
@@ -136,6 +135,8 @@ function updateIP(mode,val,color,name,url,boxId,onFail){
     box.className='icon-preview-box has-img';
     if(statusEl)statusEl.className='icon-url-status icon-url-status--ok';
     _okSetMap[boxId]?.(true);
+    // Hide refetch button after successful load (edit modal only)
+    const refBtn=$('#editRefetchBtn');if(refBtn)refBtn.style.display='none';
   };
   testImg.onerror=()=>{
     if(_iconLoadTimer)clearTimeout(_iconLoadTimer);
@@ -186,9 +187,10 @@ $('#cfConfirm').addEventListener('click',async()=>{const n=$('#cfName').value.tr
 $('#cfName').addEventListener('keydown',e=>{if(e.key==='Enter')$('#cfConfirm').click()});
 
 // ── Edit Shortcut Modal ──
-function openEditModal(idx){const sc=getShortcuts();const s=sc[idx];if(!s||s.type==='folder')return;editIdx=idx;$('#editName').value=s.name;$('#editUrl').value=s.url;editColor=s.color||COLORS[0];editIMode=s.imgUrl?'auto':'custom';editIVal=s.imgUrl?'':(s.icon||'');$('#editCustomFg').style.display=editIMode==='custom'?'block':'none';$('#editIcon').value=editIVal;renderCP('editColors','edit');updateIP(editIMode,editIVal,editColor,s.name,s.url,'editIconPreview');setTimeout(()=>{openModal('editModal');$('#editName').focus()},200)}
-$('#editFetchBtn').addEventListener('click',()=>{editIMode='auto';editIVal='';$('#editCustomFg').style.display='none';updateIP(editIMode,editIVal,editColor,$('#editName').value.trim(),$('#editUrl').value.trim(),'editIconPreview')});
-$('#editCustomBtn').addEventListener('click',()=>{editIMode='custom';$('#editCustomFg').style.display='block';$('#editIcon').focus()});
+function openEditModal(idx){const sc=getShortcuts();const s=sc[idx];if(!s||s.type==='folder')return;editIdx=idx;$('#editName').value=s.name;$('#editUrl').value=s.url;editColor=s.color||COLORS[0];editIMode=s.imgUrl?'auto':'custom';editIVal=s.imgUrl?'':(s.icon||'');$('#editCustomFg').style.display=editIMode==='custom'?'block':'none';$('#editIcon').value=editIVal;renderCP('editColors','edit');const box=$('#editIconPreview'),refBtn=$('#editRefetchBtn'),statusEl=$('#editIconUrlStatus');box.style.backgroundColor=editColor;box.style.backgroundImage='';box.innerHTML='';box.className='icon-preview-box';statusEl.textContent='';statusEl.className='icon-url-status';editIconOk=null;if(s.imgUrl){box.style.backgroundImage=`url(${s.imgUrl})`;box.className='icon-preview-box has-img';box.style.backgroundColor=editColor;refBtn.style.display='flex';statusEl.textContent='已保存的图标';statusEl.className='icon-url-status icon-url-status--ok'}else{box.innerHTML=esc(s.icon||'A');refBtn.style.display='none'}setTimeout(()=>{openModal('editModal');$('#editName').focus()},200)}
+$('#editFetchBtn').addEventListener('click',()=>{editIMode='auto';editIVal='';$('#editCustomFg').style.display='none';$('#editRefetchBtn').style.display='none';updateIP(editIMode,editIVal,editColor,$('#editName').value.trim(),$('#editUrl').value.trim(),'editIconPreview')});
+$('#editRefetchBtn').addEventListener('click',()=>{editIMode='auto';editIVal='';$('#editCustomFg').style.display='none';$('#editRefetchBtn').style.display='none';updateIP('auto','',editColor,$('#editName').value.trim(),$('#editUrl').value.trim(),'editIconPreview')});
+$('#editCustomBtn').addEventListener('click',()=>{editIMode='custom';$('#editCustomFg').style.display='block';$('#editIcon').focus();$('#editRefetchBtn').style.display='none'});
 $('#editIcon').addEventListener('input',e=>{editIVal=e.target.value;updateIP(editIMode,editIVal,editColor,$('#editName').value.trim(),$('#editUrl').value.trim(),'editIconPreview')});
 $('#editName').addEventListener('input',()=>updateIP(editIMode,editIVal,editColor,$('#editName').value.trim(),$('#editUrl').value.trim(),'editIconPreview'));
 $('#editUrl').addEventListener('input',()=>{const url=$('#editUrl').value.trim();if(editIMode==='auto'&&url){editIVal='';$('#editCustomFg').style.display='none'}updateIP(editIMode,editIVal,editColor,$('#editName').value.trim(),url,'editIconPreview')});

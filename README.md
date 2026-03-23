@@ -15,7 +15,7 @@
 - **多引擎搜索** — 支持 Google / Bing / 百度 / DuckDuckGo 切换，输入 URL 自动跳转
 - **快捷导航** — 最多 20 个快捷链接，支持文件夹分组和拖拽排序
 - **拖入文件夹** — 管理面板中拖拽快捷链接到文件夹即可移入
-- **图标自动获取** — 添加网站时自动通过 DuckDuckGo 获取 favicon，支持加载动画、失败回退、自定义文字/Emoji 和自定义图标 URL
+- **图标自动获取** — 添加网站时自动获取 favicon（默认 ToolB.cn，支持切换 Favicon.pub 等服务），支持加载动画、失败回退、自定义文字/Emoji 和自定义图标 URL
 - **高频使用** — 自动追踪访问频率最高的 30 个站点，支持搜索过滤和删除
 - **四种主题** — 深色 / 浅色 / 跟随系统 / 日出日落自动（基于时区 + 太阳赤纬方程计算）
 - **Popup 快捷添加** — 点击扩展图标，自动获取当前页面信息，一键添加到快捷导航（可选目标文件夹）
@@ -54,7 +54,7 @@
 
 - 点击浏览器工具栏的 Tab Harbor 图标（或 `Cmd/Ctrl + Shift + E`）
 - 自动获取当前标签页的标题和网址
-- 三种图标模式：**自动获取**（DuckDuckGo favicon）、**文字**（自定义文字或 Emoji）、**自定义地址**（任意图片 URL）
+- 三种图标模式：**自动获取**（favicon 服务）、**文字**（自定义文字或 Emoji）、**自定义地址**（任意图片 URL）
 - 自动检测重复网站、图标加载失败提示
 - 可选择添加到根目录或指定文件夹
 
@@ -74,7 +74,7 @@
 - **Manifest V3** — Chrome 最新扩展标准
 - **Service Worker** — 按需唤醒，低内存占用，所有数据操作集中处理
 - **chrome.storage API** — 本地数据持久化
-- **DuckDuckGo Favicon API** — `https://icons.duckduckgo.com/ip3/{domain}.ico` 获取网站图标
+- **Favicon 服务** — 默认 ToolB.cn，支持自定义 API URL（`{domain}` 占位符）
 - **Vanilla JS** — 零依赖，轻量纯净
 - **Glassmorphism CSS** — backdrop-filter 毛玻璃 + 动态渐变 + 流畅过渡
 

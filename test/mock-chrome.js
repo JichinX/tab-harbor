@@ -6,15 +6,15 @@
   // Default mock data simulating a real user's storage
   const DEFAULT_DATA = {
     shortcuts: [
-      { name: 'GitHub', url: 'https://github.com', color: '#6366f1', icon: 'G', imgUrl: 'https://icons.duckduckgo.com/ip3/github.com.ico' },
-      { name: 'Google', url: 'https://www.google.com', color: '#ec4899', icon: 'G', imgUrl: 'https://icons.duckduckgo.com/ip3/google.com.ico' },
-      { name: 'YouTube', url: 'https://www.youtube.com', color: '#ef4444', icon: 'Y', imgUrl: 'https://icons.duckduckgo.com/ip3/youtube.com.ico' },
-      { name: 'Twitter', url: 'https://x.com', color: '#3b82f6', icon: 'X', imgUrl: 'https://icons.duckduckgo.com/ip3/x.com.ico' },
-      { name: '我的博客', url: 'https://blog.example.com', color: '#10b981', icon: 'B', imgUrl: 'https://icons.duckduckgo.com/ip3/blog.example.com.ico' },
-      { name: '设计工具', url: 'https://figma.com', color: '#8b5cf6', icon: 'F', imgUrl: 'https://icons.duckduckgo.com/ip3/figma.com.ico' },
+      { name: 'GitHub', url: 'https://github.com', color: '#6366f1', icon: 'G', imgUrl: 'https://toolb.cn/favicon/github.com' },
+      { name: 'Google', url: 'https://www.google.com', color: '#ec4899', icon: 'G', imgUrl: 'https://toolb.cn/favicon/google.com' },
+      { name: 'YouTube', url: 'https://www.youtube.com', color: '#ef4444', icon: 'Y', imgUrl: 'https://toolb.cn/favicon/youtube.com' },
+      { name: 'Twitter', url: 'https://x.com', color: '#3b82f6', icon: 'X', imgUrl: 'https://toolb.cn/favicon/x.com' },
+      { name: '我的博客', url: 'https://blog.example.com', color: '#10b981', icon: 'B', imgUrl: 'https://toolb.cn/favicon/blog.example.com' },
+      { name: '设计工具', url: 'https://figma.com', color: '#8b5cf6', icon: 'F', imgUrl: 'https://toolb.cn/favicon/figma.com' },
       { name: '工作文件夹', type: 'folder', color: '#6366f1', children: [
-        { name: 'Jira', url: 'https://jira.example.com', color: '#06b6d4', icon: 'J', imgUrl: 'https://icons.duckduckgo.com/ip3/jira.example.com.ico' },
-        { name: 'Confluence', url: 'https://confluence.example.com', color: '#06b6d4', icon: 'C', imgUrl: 'https://icons.duckduckgo.com/ip3/confluence.example.com.ico' },
+        { name: 'Jira', url: 'https://jira.example.com', color: '#06b6d4', icon: 'J', imgUrl: 'https://toolb.cn/favicon/jira.example.com' },
+        { name: 'Confluence', url: 'https://confluence.example.com', color: '#06b6d4', icon: 'C', imgUrl: 'https://toolb.cn/favicon/confluence.example.com' },
       ]},
     ],
     frequentSites: [
@@ -150,7 +150,7 @@
           id: 1,
           title: 'GitHub · Where software is built',
           url: 'https://github.com',
-          favIconUrl: 'https://icons.duckduckgo.com/ip3/github.com.ico'
+          favIconUrl: 'https://toolb.cn/favicon/github.com'
         }});
         break;
 
