@@ -5,7 +5,7 @@
  */
 
 /* ── Constants ── */
-const COLORS = ['#6366f1','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#8b5cf6','#06b6d4','#f97316','#000'];
+const COLORS = ['#6366f1','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#8b5cf6','#06b6d4','#f97316','#000','#fff','transparent'];
 
 /* ── Helpers ── */
 const $ = s => document.querySelector(s);
@@ -26,6 +26,7 @@ function isValidDomain(u) { return /^https?:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.
 const DEFAULT_FAVICON_API = 'https://toolb.cn/favicon/{domain}';
 let faviconApiUrl = DEFAULT_FAVICON_API;
 function faviconUrl(url) { if (!faviconApiUrl) return ''; try { return faviconApiUrl.replace('{domain}', new URL(url).hostname); } catch { return ''; } }
+async function cacheIcon(url) { if (!url || !url.startsWith('http')) return url; try { const r = await fetch(url); if (!r.ok) return url; const b = await r.blob(); return await new Promise(res => { const fr = new FileReader(); fr.onloadend = () => res(fr.result); fr.onerror = () => res(url); fr.readAsDataURL(b); }); } catch { return url; } }
 
 function showToast(m) {
   const t = $('#toast'); t.textContent = m; t.classList.add('show');
@@ -38,6 +39,7 @@ let iconMode = 'auto'; // 'auto' | 'custom' | 'url'
 let customVal = '';
 let customUrlVal = '';
 let iconLoadOk = null; // null=pending, true=ok, false=failed
+let cachedImgUrl = null; // base64 cached favicon data URL
 let targetFolder = -1; // -1 = root (no folder), >=0 = folder index in shortcuts
 let appData = null;
 let currentTab = null;
@@ -83,7 +85,7 @@ let _imgTest = null;
 function updatePreview() {
   const name = siteName.value.trim();
   const url = siteUrl.value.trim();
-  iconPreview.style.backgroundColor = selColor;
+  iconPreview.style.backgroundColor = selColor === 'transparent' ? '' : selColor;
   iconPreview.style.backgroundImage = '';
   iconPreview.innerHTML = '';
   iconPreview.className = 'icon-preview';
@@ -112,6 +114,8 @@ function updatePreview() {
         iconPreview.style.backgroundImage = `url(${img})`;
         iconPreview.innerHTML = '';
         iconPreview.className = 'icon-preview has-img';
+        // Cache image as base64
+        cacheIcon(img).then(d => { cachedImgUrl = d; });
       };
       _imgTest.onerror = () => {
         iconLoadOk = false;
@@ -153,6 +157,8 @@ function updatePreview() {
       iconPreview.style.backgroundImage = `url(${customUrlVal})`;
       iconPreview.innerHTML = '';
       iconPreview.className = 'icon-preview has-img';
+      // Cache image as base64
+      cacheIcon(customUrlVal).then(d => { cachedImgUrl = d; });
     };
     _imgTest.onerror = () => {
       iconLoadOk = false;
@@ -188,9 +194,10 @@ function checkDuplicate(url) {
 
 /* ── Color Picker ── */
 function renderColors() {
-  colorsEl.innerHTML = COLORS.map(c =>
-    `<div class="co${c === selColor ? ' sel' : ''}" style="background:${c}" data-c="${c}"></div>`
-  ).join('');
+  colorsEl.innerHTML = COLORS.map(c => {
+    const ext = c === '#fff' ? ' co--white' : c === 'transparent' ? ' co--transparent' : '';
+    return `<div class="co${c === selColor ? ' sel' : ''}${ext}" style="background:${c}" data-c="${c}"></div>`;
+  }).join('');
   colorsEl.querySelectorAll('.co').forEach(el => el.addEventListener('click', () => {
     selColor = el.dataset.c;
     colorsEl.querySelectorAll('.co').forEach(x => x.classList.remove('sel'));
@@ -262,7 +269,7 @@ addBtn.addEventListener('click', async () => {
   } else if (iconMode === 'url' && customUrlVal && iconLoadOk !== false) {
     imgUrl = customUrlVal;
   } else if (iconMode === 'auto' && iconLoadOk === true) {
-    imgUrl = faviconUrl(url);
+    imgUrl = cachedImgUrl || faviconUrl(url);
   } else {
     imgUrl = '';
   }

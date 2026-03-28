@@ -146,6 +146,11 @@ body>div:not(.bg):not(.toolbar):not(.page):not(.modal-mask):not(.toast){display:
 .co{width:28px;height:28px;border-radius:9999px;border:2px solid transparent;cursor:pointer;transition:all var(--t-fast)}
 .co:hover{transform:scale(1.15)}
 .co.sel{border-color:var(--tx);box-shadow:0 0 0 2px var(--bg2),0 0 0 4px var(--tx)}
+.co--white{border:1.5px solid var(--divider)}
+.co--transparent{background-image:linear-gradient(45deg,var(--divider) 25%,transparent 25%),linear-gradient(-45deg,var(--divider) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,var(--divider) 75%),linear-gradient(-45deg,transparent 75%,var(--divider) 75%)!important;background-size:8px 8px!important;background-position:0 0,0 4px,4px -4px,-4px 0!important;border:1.5px dashed var(--tx3)}
+.sci-t{background:var(--bg3);border:1.5px solid var(--divider)}
+.mg-icon-t{background:var(--bg3);border:1.5px solid var(--divider)}
+.icon-preview-t{background:var(--bg3)!important;border:1.5px solid var(--divider)}
 .icon-preview{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;padding:.75rem;background:var(--bg3);border-radius:.75rem}
 .icon-preview-box{width:42px;height:42px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:1.25rem;font-weight:700;color:#fff;background-size:cover;background-position:center;box-shadow:0 1px 2px var(--shd);flex-shrink:0}
 .icon-preview-box.has-img{font-size:0}

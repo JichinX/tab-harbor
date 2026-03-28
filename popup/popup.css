@@ -157,6 +157,8 @@ body {
 
 .co:hover { transform: scale(1.15); }
 .co.sel { border-color: var(--tx); box-shadow: 0 0 0 2px var(--bg2), 0 0 0 4px var(--tx); }
+.co--white { border: 1.5px solid var(--divider); }
+.co--transparent { background-image: linear-gradient(45deg,var(--divider) 25%,transparent 25%),linear-gradient(-45deg,var(--divider) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,var(--divider) 75%),linear-gradient(-45deg,transparent 75%,var(--divider) 75%) !important; background-size: 8px 8px !important; background-position: 0 0,0 4px,4px -4px,-4px 0 !important; border: 1.5px dashed var(--tx3); }
 
 /* ── Folder Target Chips ── */
 
