@@ -24,6 +24,7 @@ let editIMode='auto',editIVal='',editColor=COLORS[0],editIdx=-1;
 let addIconOk=null,fasIconOk=null,editIconOk=null; // null=pending, true=ok, false=failed
 let addCachedImg=null,editCachedImg=null,fasCachedImg=null; // base64 cached favicon data URL
 let engineUrl='https://www.google.com/search?q=',curTheme='system',themeTimer=null;
+let curPeriod='week',curFreqLabel='次/周'; // high-frequency period toggle
 
 // Migrate old shortcuts
 function migrate(s){if(s.type==='folder')return s;if(s.color&&s.icon!==undefined)return s;const d=domain(s.url);return{name:s.name,url:s.url,color:'#6366f1',icon:s.name?s.name[0].toUpperCase():d[0].toUpperCase(),imgUrl:favicon(s.url)}}
@@ -181,7 +182,7 @@ initDrag();
 p.querySelectorAll('[data-act="ds"]').forEach(b=>b.addEventListener('click',async()=>{const item=b.closest('.mg-item');item.classList.add('removing');await new Promise(r=>setTimeout(r,400));await msg('removeShortcut',{index:+item.dataset.i});showToast('已删除');await refreshUI();renderMgSC()}));
 p.querySelectorAll('[data-act="es"]').forEach(b=>b.addEventListener('click',()=>openEditModal(+b.closest('.mg-item').dataset.i)));
 p.querySelectorAll('[data-act="ef"]').forEach(b=>b.addEventListener('click',()=>openFolderModal(+b.closest('.mg-item').dataset.i)))}
-function renderMgFR(){const p=$('#panelFr'),sites=D.frequentSites||[];if(!sites.length){p.innerHTML='<div class="mg-empty">暂无高频使用记录</div>';return}p.innerHTML=sites.map((s,i)=>`<div class="mg-item" data-i="${i}"><div class="mg-icon" style="background:${s.color}">${esc(s.letter)}</div><div class="mg-info"><div class="mg-name">${esc(s.title)}</div><div class="mg-url">${esc(s.url)} · ${s.freq} 次/周</div></div><button class="mg-del" data-act="df">✕</button></div>`).join('');p.querySelectorAll('[data-act="df"]').forEach(b=>b.addEventListener('click',async()=>{const item=b.closest('.mg-item');item.classList.add('removing');await new Promise(r=>setTimeout(r,400));await msg('removeFrequentSite',{index:+item.dataset.i});showToast('已删除');await refreshUI();renderMgFR();renderRecent()}))}
+function renderMgFR(){const p=$('#panelFr'),sites=D.frequentSites||[];if(!sites.length){p.innerHTML='<div class="mg-empty">暂无高频使用记录</div>';return}const fl=curFreqLabel||'次/周';p.innerHTML=sites.map((s,i)=>`<div class="mg-item" data-i="${i}"><div class="mg-icon" style="background:${s.color}">${esc(s.letter)}</div><div class="mg-info"><div class="mg-name">${esc(s.title)}</div><div class="mg-url">${esc(s.url)} · ${s.freq} ${fl}</div></div><button class="mg-del" data-act="df">✕</button></div>`).join('');p.querySelectorAll('[data-act="df"]').forEach(b=>b.addEventListener('click',async()=>{const item=b.closest('.mg-item');item.classList.add('removing');await new Promise(r=>setTimeout(r,400));await msg('removeFrequentSite',{index:+item.dataset.i});showToast('已删除');await refreshUI();renderMgFR();renderRecent()}))}
 function switchTab(t){curTab=t;$$('.tabs .tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));$$('.mg-panel').forEach(x=>x.classList.toggle('on',x.id===(t==='sc'?'panelSc':'panelFr')));$('#mgAddBtn').style.display=t==='sc'?'inline-flex':'none';$('#mgAddFolderBtn').style.display=t==='sc'?'inline-flex':'none'}
 $$('.tabs .tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
 $('#mgScBtn').addEventListener('click',()=>{switchTab('sc');renderMgSC();renderMgFR();openModal('mgModal')});
@@ -345,7 +346,8 @@ $('#fasUrl').addEventListener('keydown',e=>{if(e.key==='Enter')$('#fasConfirm').
 // ── Frequent Sites ──
 function renderRecent(filter=''){const g=$('#rG'),kw=(filter||'').toLowerCase(),all=D.frequentSites||[],sites=all.map((s,i)=>({...s,_i:i})).filter(s=>!kw||s.title.toLowerCase().includes(kw)||s.url.toLowerCase().includes(kw));
 if(!sites.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--tx3);font-size:.875rem">${kw?'没有找到匹配的站点':'暂无高频使用记录'}</div>`;return}
-g.innerHTML=sites.map(s=>`<a class="rc" href="https://${esc(s.url)}" target="_blank" rel="noopener"><div class="rcf" style="background:${s.color}">${esc(s.letter)}</div><div class="rci"><div class="rct">${esc(s.title)}</div><div class="rcu">${esc(s.url)}</div></div><span class="rcfm">${s.freq} 次/周</span><button class="rx" data-oi="${s._i}" data-act="rf" title="删除">✕</button></a>`).join('');
+const fl=curFreqLabel||'次/周';
+g.innerHTML=sites.map(s=>`<a class="rc" href="https://${esc(s.url)}" target="_blank" rel="noopener"><div class="rcf" style="background:${s.color}">${esc(s.letter)}</div><div class="rci"><div class="rct">${esc(s.title)}</div><div class="rcu">${esc(s.url)}</div></div><span class="rcfm">${s.freq} ${fl}</span><button class="rx" data-oi="${s._i}" data-act="rf" title="删除">✕</button></a>`).join('');
 g.querySelectorAll('[data-act="rf"]').forEach(b=>b.addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();const card=b.closest('.rc');card.classList.add('removing');await new Promise(r=>setTimeout(r,400));await msg('removeFrequentSite',{index:+b.dataset.oi});showToast('已删除');await refreshUI();renderRecent($('#frSearchInput')?.value.trim()||'')}))}
 
 $('#frSearchIcon').addEventListener('click',()=>{$('#frInlineSearch').classList.add('on');$('#frSearchInput').focus()});
@@ -354,17 +356,32 @@ $('#frSearchInput').addEventListener('input',e=>renderRecent(e.target.value.trim
 $('#frSearchInput').addEventListener('keydown',e=>{if(e.key==='Escape')$('#frSearchClear').click();if(e.key==='Enter')e.preventDefault()});
 $('#frSearchInput').addEventListener('blur',()=>{if(!$('#frSearchInput').value.trim()){$('#frInlineSearch').classList.remove('on');$('#frSearchInput').value='';renderRecent()}});
 
+// ── Period Toggle (周/月/年) ──
+const _freqLabelMap={week:'次/周',month:'次/月',year:'次/年'};
+$$('.fr-period-btn').forEach(b=>b.addEventListener('click',async()=>{
+  const p=b.dataset.period;if(p===curPeriod)return;
+  curPeriod=p;curFreqLabel=_freqLabelMap[p]||'次/周';
+  $$('.fr-period-btn').forEach(x=>x.classList.toggle('on',x.dataset.period===p));
+  showToast(`统计周期：${b.textContent}`);
+  // Re-fetch with new period
+  const topN=D?.settings?.frequentTopN||30;
+  const fr=await msg('refreshFrequentSites',{period:curPeriod,maxTop:topN});
+  if(fr.success){D.frequentSites=fr.sites||[];if(fr.freqLabel)curFreqLabel=fr.freqLabel}
+  renderRecent($('#frSearchInput')?.value.trim()||'');
+  renderMgFR();
+}));
+
 // ── Keyboard Shortcuts ──
 document.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(e.target.tagName)){e.preventDefault();$('#sI').focus()}});
 
 // ── Refresh UI ──
 let _freqRefreshed=false;
-async function refreshUI(){const r=await msg('loadData');if(r.success&&r.data){D=r.data;if(D.settings?.faviconApi)faviconApiUrl=D.settings.faviconApi}if(!D)return;if(!D.shortcuts)D.shortcuts=[];if(!D.frequentSites)D.frequentSites=[];renderShortcuts();if(!_freqRefreshed){_freqRefreshed=true;const fr=await msg('refreshFrequentSites');if(fr.success&&fr.sites){D.frequentSites=fr.sites}}renderRecent()}
+async function refreshUI(){const r=await msg('loadData');if(r.success&&r.data){D=r.data;if(D.settings?.faviconApi)faviconApiUrl=D.settings.faviconApi;if(D.settings?.frequentPeriod)curPeriod=D.settings.frequentPeriod;curFreqLabel=_freqLabelMap[curPeriod]||'次/周'}if(!D)return;if(!D.shortcuts)D.shortcuts=[];if(!D.frequentSites)D.frequentSites=[];renderShortcuts();if(!_freqRefreshed){_freqRefreshed=true;const topN=D?.settings?.frequentTopN||30;const fr=await msg('refreshFrequentSites',{period:curPeriod,maxTop:topN});if(fr.success){D.frequentSites=fr.sites||[];if(fr.freqLabel)curFreqLabel=fr.freqLabel;if(fr.period)curPeriod=fr.period}}renderRecent()}
 
 // ── Settings ──
-$('#settingsBtn').addEventListener('click',async()=>{const r=await msg('loadData');if(r.success&&r.data?.settings?.faviconApi)$('#faviconApi').value=r.data.settings.faviconApi;else $('#faviconApi').value=DEFAULT_FAVICON_API;setTimeout(()=>openModal('settingsModal'),200)});
+$('#settingsBtn').addEventListener('click',async()=>{const r=await msg('loadData');if(r.success&&r.data?.settings){if(r.data.settings.faviconApi)$('#faviconApi').value=r.data.settings.faviconApi;else $('#faviconApi').value=DEFAULT_FAVICON_API;if(r.data.settings.frequentTopN)$('#frequentTopN').value=r.data.settings.frequentTopN}else{$('#faviconApi').value=DEFAULT_FAVICON_API}setTimeout(()=>openModal('settingsModal'),200)});
 $$('#settingsModal .preset-api').forEach(b=>b.addEventListener('click',()=>{$('#faviconApi').value=b.dataset.url}));
-$('#saveSettings').addEventListener('click',async()=>{const url=$('#faviconApi').value.trim();if(!url){showToast('请输入图标获取地址');return}if(!url.includes('{domain}')){showToast('地址需包含 {domain} 占位符');return}faviconApiUrl=url;await msg('updateSettings',{settings:{faviconApi:url}});closeModal('settingsModal');showToast('设置已保存')});
+$('#saveSettings').addEventListener('click',async()=>{const url=$('#faviconApi').value.trim();if(!url){showToast('请输入图标获取地址');return}if(!url.includes('{domain}')){showToast('地址需包含 {domain} 占位符');return}const topN=parseInt($('#frequentTopN').value,10);const settings={faviconApi:url};if(topN>=5&&topN<=100)settings.frequentTopN=topN;faviconApiUrl=url;await msg('updateSettings',{settings});closeModal('settingsModal');showToast('设置已保存')});
 
 // ── Init ──
 (async()=>{await refreshUI();migrateIcons();renderCP('addColors','add');renderCP('fasColors','fas')})();

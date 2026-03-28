@@ -141,18 +141,24 @@ async function removeSiteFromFolder(folderIndex, siteIndex) {
 // ─── Frequent sites ──────────────────────────────────────────────────────
 
 /**
- * Scrape chrome.history for the past 7 days, count visit frequency per domain.
- * Returns top MAX_FREQUENT domains sorted by visit count desc.
+ * Scrape chrome.history for the given period, count visit frequency per domain.
+ * @param {Object} options
+ * @param {'week'|'month'|'year'} [options.period='week'] - Time range for history search
+ * @param {number} [options.maxTop=30] - Max number of sites to return
  */
-async function refreshFrequentSites() {
+async function refreshFrequentSites({ period = 'week', maxTop = 30 } = {}) {
   try {
     const now = Date.now();
-    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const DAY = 24 * 60 * 60 * 1000;
+    const daysMap = { week: 7, month: 30, year: 365 };
+    const days = daysMap[period] || 7;
+    const startTime = now - days * DAY;
+
     const items = await chrome.history.search({
       text: '',
-      startTime: weekAgo,
+      startTime,
       endTime: now,
-      maxResults: 5000,
+      maxResults: 10000,
     });
 
     // Aggregate visit count by domain
@@ -172,7 +178,6 @@ async function refreshFrequentSites() {
       }
       // visitCount is total all-time; we use it as an approximation since
       // chrome.history.search doesn't provide per-range counts directly.
-      // For weekly ranking, this is good enough.
       domainMap[domain].count += item.visitCount || 1;
       // Prefer shorter/cleaner title
       if (item.title && item.title.length < (domainMap[domain].title || '').length) {
@@ -191,29 +196,33 @@ async function refreshFrequentSites() {
       }
     }
 
-    // Sort by count desc, take top MAX_FREQUENT
+    // Sort by count desc, take top maxTop
+    const limit = Math.max(5, Math.min(maxTop, 100));
     const sorted = Object.values(domainMap)
       .filter(d => !shortcutDomains.has(d.domain))
       .sort((a, b) => b.count - a.count)
-      .slice(0, MAX_FREQUENT);
+      .slice(0, limit);
 
     // Convert to FrequentSite format
-    // freq = approximate visits per week (use count for ranking display)
+    const freqLabel = { week: '次/周', month: '次/月', year: '次/年' }[period] || '次/周';
     const maxCount = sorted.length ? sorted[0].count : 1;
+    const freqScale = days <= 7 ? 50 : days <= 30 ? 100 : 300;
     const frequentSites = sorted.map(d => ({
       url: d.domain,
       title: d.title || d.domain,
       letter: (d.title || d.domain)[0].toUpperCase(),
       color: generateColor(d.domain),
-      freq: Math.max(1, Math.round((d.count / maxCount) * 50)), // normalized "次/周"
+      freq: Math.max(1, Math.round((d.count / maxCount) * freqScale)),
     }));
 
+    // Store freqLabel so UI can display the correct unit
     data.frequentSites = frequentSites;
+    data.frequentSitesMeta = { period, freqLabel };
     await saveData(data);
-    return frequentSites;
+    return { sites: frequentSites, period, freqLabel };
   } catch (e) {
     console.error('refreshFrequentSites failed:', e);
-    return [];
+    return { sites: [], period, freqLabel: '' };
   }
 }
 
@@ -294,8 +303,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         break;
       }
       case 'refreshFrequentSites': {
-        const sites = await refreshFrequentSites();
-        sendResponse({ success: true, sites });
+        const result = await refreshFrequentSites({
+          period: message.period || 'week',
+          maxTop: message.maxTop || 30,
+        });
+        sendResponse({ success: true, sites: result.sites, period: result.period, freqLabel: result.freqLabel });
         break;
       }
       // ─── Search engine ───

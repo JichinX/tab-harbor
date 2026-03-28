@@ -105,6 +105,12 @@ body>div:not(.bg):not(.toolbar):not(.page):not(.modal-mask):not(.toast){display:
 .fr-search-clear:hover{background:rgba(239,68,68,.1);color:#ef4444}
 .fr-inline-search.on .fr-search-clear{display:flex}
 
+/* ── Period Toggle (周/月/年) ─────────────────────────────────────────── */
+.fr-period{display:flex;gap:0;background:var(--bg3);border-radius:9999px;padding:2px}
+.fr-period-btn{width:26px;height:22px;border:none;border-radius:9999px;background:0;font-size:.6875rem;font-weight:500;font-family:var(--ff);color:var(--tx3);cursor:pointer;transition:all var(--t-fast);display:flex;align-items:center;justify-content:center}
+.fr-period-btn.on{background:var(--accent);color:#fff;box-shadow:0 1px 3px var(--shd)}
+.fr-period-btn:hover:not(.on){color:var(--tx)}
+
 /* ── Recent / Frequent ──────────────────────────────────────────────────── */
 .recent{width:100%;max-width:960px;margin-bottom:3rem;animation:fi .8s ease-out .3s both}
 .rg{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem}

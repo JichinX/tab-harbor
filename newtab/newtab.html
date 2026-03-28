@@ -79,7 +79,14 @@
           </button>
         </div>
       </div>
-      <button class="sa" id="clearRecent">管理</button>
+      <div style="display:flex;align-items:center;gap:.375rem">
+        <div class="fr-period" id="frPeriod">
+          <button class="fr-period-btn on" data-period="week">周</button>
+          <button class="fr-period-btn" data-period="month">月</button>
+          <button class="fr-period-btn" data-period="year">年</button>
+        </div>
+        <button class="sa" id="clearRecent">管理</button>
+      </div>
     </div>
     <div class="rg" id="rG"></div>
   </section>
@@ -208,6 +215,11 @@
         <label class="fl">图标获取服务地址</label>
         <input class="fi" id="faviconApi" placeholder="https://toolb.cn/favicon/{domain}">
         <div style="font-size:.6875rem;color:var(--tx3);margin-top:.375rem;line-height:1.5">支持 <code style="background:var(--bg3);padding:0 .25rem;border-radius:.25rem">{domain}</code> 占位符，获取图标时会替换为网站域名</div>
+      </div>
+      <div class="fg">
+        <label class="fl">高频使用显示数量</label>
+        <input class="fi" id="frequentTopN" type="number" min="5" max="100" placeholder="30">
+        <div style="font-size:.6875rem;color:var(--tx3);margin-top:.375rem;line-height:1.5">高频使用列表最多显示的站点数量（5-100），默认 30</div>
       </div>
       <div class="fg" style="margin-bottom:0">
         <label class="fl">预设服务</label>
