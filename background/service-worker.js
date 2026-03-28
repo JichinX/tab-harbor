@@ -6,6 +6,9 @@
 
 const STORAGE_KEY = 'tab_harbor_data';
 const MAX_SHORTCUTS = 20;
+const MAX_FREQUENT = 30;
+const SKIP_DOMAINS = ['chrome-extension://', 'chrome://', 'chrome-newtab://', 'about:blank', 'localhost'];
+const SKIP_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.zip', '.rar', '.mp4', '.mp3'];
 
 // ─── Default data structure ───────────────────────────────────────────────────
 
@@ -135,7 +138,92 @@ async function removeSiteFromFolder(folderIndex, siteIndex) {
   await saveData(data);
 }
 
-// ─── Frequent sites CRUD ─────────────────────────────────────────────────────
+// ─── Frequent sites ──────────────────────────────────────────────────────
+
+/**
+ * Scrape chrome.history for the past 7 days, count visit frequency per domain.
+ * Returns top MAX_FREQUENT domains sorted by visit count desc.
+ */
+async function refreshFrequentSites() {
+  try {
+    const now = Date.now();
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const items = await chrome.history.search({
+      text: '',
+      startTime: weekAgo,
+      endTime: now,
+      maxResults: 5000,
+    });
+
+    // Aggregate visit count by domain
+    const domainMap = {};
+    for (const item of items) {
+      if (!item.url || !item.visitCount) continue;
+      // Skip non-http schemes
+      if (!item.url.startsWith('http://') && !item.url.startsWith('https://')) continue;
+      // Skip file downloads
+      if (SKIP_EXTENSIONS.some(ext => item.url.toLowerCase().includes(ext) && item.url.split(ext)[1] === '')) continue;
+
+      const domain = extractDomain(item.url);
+      if (domain === 'unknown' || domain.length < 3) continue;
+
+      if (!domainMap[domain]) {
+        domainMap[domain] = { domain, title: item.title || domain, count: 0 };
+      }
+      // visitCount is total all-time; we use it as an approximation since
+      // chrome.history.search doesn't provide per-range counts directly.
+      // For weekly ranking, this is good enough.
+      domainMap[domain].count += item.visitCount || 1;
+      // Prefer shorter/cleaner title
+      if (item.title && item.title.length < (domainMap[domain].title || '').length) {
+        domainMap[domain].title = item.title;
+      }
+    }
+
+    // Get shortcuts to exclude them from frequent list
+    const data = await loadData();
+    const shortcutDomains = new Set();
+    for (const s of data.shortcuts || []) {
+      if (s.type === 'folder') {
+        (s.children || []).forEach(c => { if (c.url) shortcutDomains.add(extractDomain(c.url)); });
+      } else if (s.url) {
+        shortcutDomains.add(extractDomain(s.url));
+      }
+    }
+
+    // Sort by count desc, take top MAX_FREQUENT
+    const sorted = Object.values(domainMap)
+      .filter(d => !shortcutDomains.has(d.domain))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, MAX_FREQUENT);
+
+    // Convert to FrequentSite format
+    // freq = approximate visits per week (use count for ranking display)
+    const maxCount = sorted.length ? sorted[0].count : 1;
+    const frequentSites = sorted.map(d => ({
+      url: d.domain,
+      title: d.title || d.domain,
+      letter: (d.title || d.domain)[0].toUpperCase(),
+      color: generateColor(d.domain),
+      freq: Math.max(1, Math.round((d.count / maxCount) * 50)), // normalized "次/周"
+    }));
+
+    data.frequentSites = frequentSites;
+    await saveData(data);
+    return frequentSites;
+  } catch (e) {
+    console.error('refreshFrequentSites failed:', e);
+    return [];
+  }
+}
+
+/** Deterministic color from domain string */
+function generateColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  const palette = ['#6366f1','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#8b5cf6','#06b6d4','#f97316','#14b8a6'];
+  return palette[Math.abs(hash) % palette.length];
+}
 
 async function removeFrequentSite(index) {
   const data = await loadData();
@@ -203,6 +291,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'removeFrequentSite': {
         await removeFrequentSite(message.index);
         sendResponse({ success: true });
+        break;
+      }
+      case 'refreshFrequentSites': {
+        const sites = await refreshFrequentSites();
+        sendResponse({ success: true, sites });
         break;
       }
       // ─── Search engine ───

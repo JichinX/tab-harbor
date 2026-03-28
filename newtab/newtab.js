@@ -358,7 +358,8 @@ $('#frSearchInput').addEventListener('blur',()=>{if(!$('#frSearchInput').value.t
 document.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(e.target.tagName)){e.preventDefault();$('#sI').focus()}});
 
 // ── Refresh UI ──
-async function refreshUI(){const r=await msg('loadData');if(r.success&&r.data){D=r.data;if(D.settings?.faviconApi)faviconApiUrl=D.settings.faviconApi}if(!D)return;if(!D.shortcuts)D.shortcuts=[];if(!D.frequentSites)D.frequentSites=[];renderShortcuts();renderRecent()}
+let _freqRefreshed=false;
+async function refreshUI(){const r=await msg('loadData');if(r.success&&r.data){D=r.data;if(D.settings?.faviconApi)faviconApiUrl=D.settings.faviconApi}if(!D)return;if(!D.shortcuts)D.shortcuts=[];if(!D.frequentSites)D.frequentSites=[];renderShortcuts();if(!_freqRefreshed){_freqRefreshed=true;const fr=await msg('refreshFrequentSites');if(fr.success&&fr.sites){D.frequentSites=fr.sites}}renderRecent()}
 
 // ── Settings ──
 $('#settingsBtn').addEventListener('click',async()=>{const r=await msg('loadData');if(r.success&&r.data?.settings?.faviconApi)$('#faviconApi').value=r.data.settings.faviconApi;else $('#faviconApi').value=DEFAULT_FAVICON_API;setTimeout(()=>openModal('settingsModal'),200)});
